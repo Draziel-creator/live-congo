@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CongoFlix Live</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body, html { width: 100%; height: 100%; background: #111; color: white; overflow: hidden; }
+
+        #bg-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 1.2s ease-in-out;
+            /* On baisse un peu le filtre pour voir si ça vient de là */
+            filter: brightness(0.8); 
+        }
+
+        .live-container {
+            position: relative; z-index: 10;
+            height: 100vh; width: 100vw;
+            display: flex; flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+        }
+
+        .vip-section { position: relative; height: 350px; width: 100%; margin-top: 40px; }
+        .seat { position: absolute; display: flex; flex-direction: column; align-items: center; width: 110px; }
+        .pos-1 { top: 50%; left: 50%; transform: translate(-50%, -50%); } 
+        .pos-2 { top: 0; left: 5%; } .pos-3 { top: 0; right: 5%; }   
+        .pos-4 { bottom: 0; left: 5%; } .pos-5 { bottom: 0; right: 5%; }
+
+        .avatar-wrapper {
+            position: relative; width: 85px; height: 85px;
+            border-radius: 50%; border: 2px solid rgba(255, 215, 0, 0.4);
+            background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .pos-1 .avatar-wrapper { width: 120px; height: 120px; border: 3px solid #FFD700; }
+        .crown-overlay { position: absolute; top: -15%; left: -15%; width: 130%; height: 130%; z-index: 5; }
+
+        .audience-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding: 10px; margin-bottom: 50px; }
+        .mini-seat { width: 55px; height: 55px; border: 2px solid #ff4444; border-radius: 50%; background: rgba(0,0,0,0.7); }
+        .pts { background: linear-gradient(180deg, #FFD700, #FFA500); color: black; font-weight: bold; font-size: 10px; padding: 1px 7px; border-radius: 10px; margin-top: 4px; }
+        .name { font-size: 11px; margin-top: 2px; text-shadow: 1px 1px 2px #000; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="bg-container"></div>
+
+    <div class="live-container">
+        <div class="vip-section">
+            <div class="seat pos-1">
+                <div class="avatar-wrapper">
+                    <img src="https://raw.githubusercontent.com/Draziel-creator/CongoFlix-/main/assets/OUI.png" class="crown-overlay">
+                    <img src="https://via.placeholder.com/100" style="width:85%; height:85%; border-radius:50%; object-fit:cover;">
+                </div>
+                <span class="name">Hôte</span>
+                <div class="pts">3.45M</div>
+            </div>
+            <div class="seat pos-2"><div class="avatar-wrapper"></div><span class="name">Draziel</span><div class="pts">2.25M</div></div>
+            <div class="seat pos-3"><div class="avatar-wrapper"></div><span class="name">NitaK</span><div class="pts">1.89M</div></div>
+            <div class="seat pos-4"><div class="avatar-wrapper"></div><span class="name">Tari</span><div class="pts">1.56M</div></div>
+            <div class="seat pos-5"><div class="avatar-wrapper"></div><span class="name">Samuka</span><div class="pts">1.23M</div></div>
+        </div>
+        <div class="audience-grid" id="audience-box"></div>
+    </div>
+
+    <script>
+        const rawList = [
+            "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhMIlI3lCJpOUGQQbzAZDPSz3gKanOKbgiso8VBLLNXiP7C8L0LPCs9TRLVpTzqOLhgKA7vwwp_FWd2MouHvj3mAmlcOFalg8zTaW04p6Sf1aIfiDY42puyieOYO_sJa6nvnUMFHmdBgZEzE4dAHQGIpS8U-_CK6cpbUJbe1opqzHEsxTzEvDUQAdvNxO7D/s320/WhatsApp%20Image%202026-05-05%20at%2010.39.24.jpeg",
+            "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiLMc24eo9WnrekAkt6QgarVkDm8m5Sc72SHGbrTX2cxK687SFOtO3sL4Lp2ACIIqpQOc3Jkwcln0iAhi-l1sR-2WN5pEKeoFHk3Nv8CgbNUiRnn9MjAq2KDCP-kQgzF23HiUBLs9sifB6qmQ0hiVhZpcSILw7wLu-9KVWASJ9eYS8NeVS62M-nO5ORO0rJ/s320/WhatsApp%20Image%202026-05-05%20at%2010.39.25.jpeg",
+            "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgcnIHz3n8KscfJIN8lWA40ecbeKM4ZKw-ULx8v8nacCTZfPFX6UXMbAfVFZMR-gmnzBfpqd7kI2XuuPf0TJyW1MQwQuKVsovRzWT81Wdn_FcwYWEl09Bll8xG3BASCO6GpfQsJffN74OnN0HyiavZ6y21hiVJeb3RcgKWkCS17Dn0J0otgls6VzUw8XMw6/s320/WhatsApp%20Image%202026-05-05%20at%2010.39.25%20(1).jpeg",
+            "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj_GEjNn2qxm1aMcRgpvCJ7LAcTRrxAVc-uZ1qQHUqaPHdEgoRP3XVO4ERHmdTJ7mc_XQDTLJ6RmG7OAOqCQiJHXCRkszUPoAYcDZ1ckM-va-1kNlJCfaPYt2Y_eWaHKhqXq2jrbrzzbnOk1CP9hBPN2sAakde4Q6YWEUAKMI0RZjttQsbPwGnmNP9ItYbX/s320/WhatsApp%20Image%202026-05-05%20at%2010.39.25%20(2).jpeg",
+            "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjwzAA7eO_H8EdLLtVCRVoE-5eRKI3a1HHfsax5CAhSDy9EXcss6vAQgPwYoLEdWSGZbjSSXwns3JGi_XK5noKfkLlCea7Oo4tOJ-bYD57xdS-sDRDA7JuzEbZLyyaNaDsROhwxu7l2R7X1lF_sf40SWa6XBfcj_8iqpvY4_WI6ia4je_uaZL77PtBSjdp8/s320/WhatsApp%20Image%202026-05-05%20at%2010.39.26.jpeg",
+            "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiRH_FtXUB0DaM7ZLwv9GdSm7xGxLfrRhj8-rN4tViPloAJdwh9PoYjFYV4Cxz0dNd6uqxJvMU0yVML9tOiqLpSNZk_TQpiz1agTkYL0OKF5JVHu5bVG_PNwM1FRdga03uirSZnWT0Gu4_3IVkMZA0iP6iRtoS-jKPfD0Zq0KO9kzhgXcl2AuRTUwyiQkQQ/s320/WhatsApp%20Image%202026-05-05%20at%2010.39.26%20(1).jpeg",
+            "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhvFiT5ODSbHdiiZw1uzqaR0S-4CCCJjMTPQrIdN5NJSQhwRR3P9R_GLR4HdsDzH8KxBUJGllMGqYNSOw2Szkk-8tnNwyZY7YhzNQ5csFGgYXpYO0ufV8RGAbi9rvaQsoisTGFaBdcZ_fkLDJsYuWpIEHlS3KNMj6dYqclt_LeL35HPIGAWvj1tsiNJ46-S/s320/WhatsApp%20Image%202026-05-05%20at%2010.39.26%20(2).jpeg",
+            "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiTcm249Oej6d-zQYh-lopyOv9AkkHKCtUUh2SgZdQNbzLvoHXbLYG1m-oxgzf7rqhqc463svfkuuXsdQ1IsHvXIJxPORYo3JEsvcY6l3oZ6su1LnLdhxQ87CTkgXNnL4BSLujJMdBJrRxvhLCJ5UtZzREelgN2Suv2yG-HyTtUn8ZR4-W4QOAxpPsfThYK/s320/WhatsApp%20Image%202026-05-05%20at%2010.39.27.jpeg",
+            "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi63FikksuwlZM8SIo_-mwJQhKnd0lbrlosGTwNROyFYL5xTPc5slCRhYmvOVwy1L9W_28qPJ6YyAb9WVlPEVgGRSMOv8wuvVxhxZvBMKXIXIG-HycoxodJ1dSOeQ_nvPzYUp1jyMSLUT0axrUOAWAcF3cucp9OvSQ7-Gjg2iIjpvtiEfqJUo736zqyCGDO/s320/WhatsApp%20Image%202026-05-05%20at%2010.39.27%20(1).jpeg"
+        ];
+
+        // On nettoie les liens pour avoir la haute qualité et éviter le cache
+        const bgList = rawList.map(url => url.replace('/s320/', '/s1600/') + "?v=" + Math.random());
+
+        let currentBg = 0;
+        const bgContainer = document.getElementById('bg-container');
+
+        function changeBg() {
+            const nextImg = new Image();
+            nextImg.src = bgList[currentBg];
+            nextImg.onload = () => {
+                bgContainer.style.backgroundImage = `url('${bgList[currentBg]}')`;
+                currentBg = (currentBg + 1) % bgList.length;
+            };
+        }
+
+        setInterval(changeBg, 7000); 
+        changeBg();
+
+        const audienceBox = document.getElementById('audience-box');
+        for (let i = 6; i <= 15; i++) {
+            audienceBox.innerHTML += `
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <div class="mini-seat"></div>
+                    <span class="name" style="font-size:9px;">P${i}</span>
+                    <div class="pts" style="background:#444; color:white; font-size:8px;">0K</div>
+                </div>`;
+        }
+    </script>
+</body>
+</html>
